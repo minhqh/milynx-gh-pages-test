@@ -1,21 +1,28 @@
 import json
-import random
 import datetime
+import urllib.request
 
-facts = [
-    "PyTorch utilizes dynamic computational graphs, making it highly flexible for deep learning research.",
-    "Graph Neural Networks (GNNs) are powerful tools for modeling relational data and building complex recommender systems.",
-    "Attention mechanisms fundamentally changed how sequence-to-sequence models process context.",
-    "Docker containers ensure consistency across different deployment environments, solving the 'it works on my machine' problem."
-]
+# API miễn phí cung cấp các sự thật ngẫu nhiên
+url = "https://uselessfacts.jsph.pl/api/v2/facts/random"
 
+try:
+    # Gọi API bằng thư viện build-in của Python (không cần cài thêm pip requests)
+    response = urllib.request.urlopen(url)
+    api_data = json.loads(response.read())
+    fact_text = api_data['text']
+    author = "Useless Facts API"
+except Exception as e:
+    fact_text = f"Không thể lấy dữ liệu từ API: {e}"
+    author = "System Error"
+
+# Cấu trúc dữ liệu ghi vào file JSON
 data = {
     "last_updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"),
-    "fact": random.choice(facts),
-    "author": "Milynx"
+    "fact": fact_text,
+    "author": author
 }
 
-with open("data.json", "w") as f:
-    json.dump(data, f, indent=2)
+with open("data.json", "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
 
-print(f"Updated data.json at {data['last_updated']}")
+print(f"Đã cập nhật dữ liệu mới từ API vào lúc {data['last_updated']}")

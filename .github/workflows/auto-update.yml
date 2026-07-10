@@ -2,14 +2,14 @@ name: Auto Update Data and Trigger Pages
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Chạy tự động vào lúc 0:00 UTC mỗi ngày
-  workflow_dispatch: # Bật tính năng để bạn có thể bấm nút "Run workflow" test thủ công
+    - cron: '0 0 * * *' # Tự động chạy lúc 0:00 UTC mỗi ngày
+  workflow_dispatch: # Cho phép bạn bấm nút chạy thủ công để test
 
 jobs:
   update-content:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Cấp quyền để Action có thể commit code ngược lại repo
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -30,3 +30,23 @@ jobs:
           git add data.json
           git commit -m "Auto-update data.json via GitHub Actions" || echo "No changes to commit"
           git push
+
+      # Bước mới: Bắn thông báo về Discord nếu các bước trên thành công
+      - name: Send Discord Notification
+        if: success()
+        run: |
+          # Dùng jq để trích xuất dữ liệu từ file json vừa được cập nhật
+          FACT=$(jq -r '.fact' data.json)
+          TIME=$(jq -r '.last_updated' data.json)
+          
+          # Tạo payload JSON an toàn cho Discord (tránh lỗi nếu chuỗi có dấu ngoặc kép)
+          PAYLOAD=$(jq -n \
+            --arg f "$FACT" \
+            --arg t "$TIME" \
+            '{content: "🚀 **DỰ ÁN MINI CẬP NHẬT THÀNH CÔNG!**\n\n💡 **Fact hôm nay:** \($f)\n🕒 **Cập nhật lúc:** \($t)\n\n🔗 Xem trực tiếp tại: https://minhqh.github.io/milynx-gh-pages-test/"}')
+          
+          # Gửi request POST đến Discord Webhook sử dụng Secret đã cấu hình
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$PAYLOAD" \
+               ${{ secrets.DISCORD_WEBHOOK }}
